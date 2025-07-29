@@ -14,7 +14,153 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      notifications: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean | null
+          message: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          message: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          is_admin: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          is_admin?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          is_admin?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      registrations: {
+        Row: {
+          dietary_restrictions: string | null
+          email: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          experience_level: string
+          full_name: string
+          github_username: string | null
+          id: string
+          phone: string | null
+          registered_at: string
+          t_shirt_size: string | null
+          team_name: string | null
+          university: string | null
+          user_id: string
+          year_of_study: string | null
+        }
+        Insert: {
+          dietary_restrictions?: string | null
+          email: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          experience_level: string
+          full_name: string
+          github_username?: string | null
+          id?: string
+          phone?: string | null
+          registered_at?: string
+          t_shirt_size?: string | null
+          team_name?: string | null
+          university?: string | null
+          user_id: string
+          year_of_study?: string | null
+        }
+        Update: {
+          dietary_restrictions?: string | null
+          email?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          experience_level?: string
+          full_name?: string
+          github_username?: string | null
+          id?: string
+          phone?: string | null
+          registered_at?: string
+          t_shirt_size?: string | null
+          team_name?: string | null
+          university?: string | null
+          user_id?: string
+          year_of_study?: string | null
+        }
+        Relationships: []
+      }
+      schedule: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_time: string
+          id: string
+          location: string | null
+          start_time: string
+          title: string
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_time: string
+          id?: string
+          location?: string | null
+          start_time: string
+          title: string
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          id?: string
+          location?: string | null
+          start_time?: string
+          title?: string
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
