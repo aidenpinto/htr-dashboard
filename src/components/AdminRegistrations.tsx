@@ -4,20 +4,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Search, Download, Loader2 } from 'lucide-react';
+import { Users, Search, Download, Loader2, ChevronDown, ChevronUp, Copy, Save, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Registration {
   id: string;
+  user_id: string;
   full_name: string;
   email: string;
-  phone: string;
-  university: string;
-  year_of_study: string;
+  grade: string;
+  school_name: string;
+  school_name_other: string;
+  hackathons_attended: number;
+  dietary_restrictions: string;
+  dietary_restrictions_other: string;
   experience_level: string;
-  team_name: string;
   registered_at: string;
+}
+
+interface EditingRegistration extends Registration {
+  isEditing?: boolean;
 }
 
 const AdminRegistrations = () => {
@@ -25,6 +33,9 @@ const AdminRegistrations = () => {
   const [filteredRegistrations, setFilteredRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [editingRegistrations, setEditingRegistrations] = useState<{ [key: string]: EditingRegistration }>({});
+  const [saving, setSaving] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     loadRegistrations();
@@ -35,13 +46,112 @@ const AdminRegistrations = () => {
       const filtered = registrations.filter(reg =>
         reg.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         reg.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reg.university.toLowerCase().includes(searchTerm.toLowerCase())
+        reg.school_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (reg.school_name_other && reg.school_name_other.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       setFilteredRegistrations(filtered);
     } else {
       setFilteredRegistrations(registrations);
     }
   }, [searchTerm, registrations]);
+
+  const toggleRowExpansion = (registrationId: string) => {
+    const newExpandedRows = new Set(expandedRows);
+    if (newExpandedRows.has(registrationId)) {
+      newExpandedRows.delete(registrationId);
+    } else {
+      newExpandedRows.add(registrationId);
+    }
+    setExpandedRows(newExpandedRows);
+  };
+
+  const isRowExpanded = (registrationId: string) => {
+    return expandedRows.has(registrationId);
+  };
+
+  const truncateText = (text: string, maxLength: number = 30) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+  const shouldShowExpandButton = (text: string, maxLength: number = 30) => {
+    return text.length > maxLength;
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const startEditing = (registration: Registration) => {
+    setEditingRegistrations(prev => ({
+      ...prev,
+      [registration.id]: { ...registration, isEditing: true }
+    }));
+  };
+
+  const cancelEditing = (registrationId: string) => {
+    setEditingRegistrations(prev => {
+      const newState = { ...prev };
+      delete newState[registrationId];
+      return newState;
+    });
+  };
+
+  const updateEditingField = (registrationId: string, field: keyof Registration, value: string | number) => {
+    setEditingRegistrations(prev => ({
+      ...prev,
+      [registrationId]: {
+        ...prev[registrationId],
+        [field]: value
+      }
+    }));
+  };
+
+  const saveRegistration = async (registrationId: string) => {
+    const editingRegistration = editingRegistrations[registrationId];
+    if (!editingRegistration) return;
+
+    setSaving(prev => ({ ...prev, [registrationId]: true }));
+
+    try {
+      const { error } = await supabase
+        .from('registrations')
+        .update({
+          full_name: editingRegistration.full_name,
+          email: editingRegistration.email,
+          grade: editingRegistration.grade,
+          school_name: editingRegistration.school_name,
+          school_name_other: editingRegistration.school_name_other,
+          hackathons_attended: editingRegistration.hackathons_attended,
+          dietary_restrictions: editingRegistration.dietary_restrictions,
+          dietary_restrictions_other: editingRegistration.dietary_restrictions_other,
+          experience_level: editingRegistration.experience_level
+        })
+        .eq('id', registrationId);
+
+      if (error) throw error;
+
+      // Update the main registrations state
+      setRegistrations(prev => 
+        prev.map(reg => 
+          reg.id === registrationId 
+            ? { ...editingRegistration, isEditing: false }
+            : reg
+        )
+      );
+
+      // Remove from editing state
+      setEditingRegistrations(prev => {
+        const newState = { ...prev };
+        delete newState[registrationId];
+        return newState;
+      });
+    } catch (error) {
+      console.error('Error saving registration:', error);
+    } finally {
+      setSaving(prev => ({ ...prev, [registrationId]: false }));
+    }
+  };
 
   const loadRegistrations = async () => {
     try {
@@ -63,8 +173,8 @@ const AdminRegistrations = () => {
 
   const exportToCSV = () => {
     const headers = [
-      'Name', 'Email', 'Phone', 'University', 'Year of Study', 
-      'Experience Level', 'Team Name', 'Registration Date'
+      'Name', 'Email', 'Grade', 'School', 'Hackathons Attended', 
+      'Dietary Restrictions', 'Registration Date'
     ];
     
     const csvContent = [
@@ -72,11 +182,10 @@ const AdminRegistrations = () => {
       ...filteredRegistrations.map(reg => [
         reg.full_name,
         reg.email,
-        reg.phone || '',
-        reg.university || '',
-        reg.year_of_study || '',
-        reg.experience_level,
-        reg.team_name || '',
+        reg.grade,
+        reg.school_name === 'other' ? reg.school_name_other : reg.school_name,
+        reg.hackathons_attended,
+        reg.dietary_restrictions === 'other' ? reg.dietary_restrictions_other : reg.dietary_restrictions,
         format(new Date(reg.registered_at), 'yyyy-MM-dd HH:mm:ss')
       ].join(','))
     ].join('\n');
@@ -101,6 +210,139 @@ const AdminRegistrations = () => {
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
+  };
+
+  const getGradeDisplay = (grade: string) => {
+    const gradeMap: { [key: string]: string } = {
+      'elementary-6-8': 'Elementary 6-8',
+      '9': 'Grade 9',
+      '10': 'Grade 10',
+      '11': 'Grade 11',
+      '12': 'Grade 12'
+    };
+    return gradeMap[grade] || grade;
+  };
+
+  const getSchoolDisplay = (registration: Registration) => {
+    if (registration.school_name === 'other') {
+      return registration.school_name_other || 'Other';
+    }
+    const schoolMap: { [key: string]: string } = {
+      'iroquois-ridge-high-school': 'Iroquois Ridge High School',
+      'white-oaks-secondary-school': 'White Oaks Secondary School',
+      'abbey-park-high-school': 'Abbey Park High School',
+      'oakville-trafalgar-high-school': 'Oakville Trafalgar High School',
+      'ta-blakelock-high-school': 'TA Blakelock High School',
+      'garth-webb-secondary-school': 'Garth Webb Secondary School',
+      'joshua-creek-public-school': 'Joshua Creek Public School',
+      'falgarwood-public-school': 'Falgarwood Public School',
+      'wh-morden-public-school': 'W.H. Morden Public School',
+      'munns-public-school': 'Munn\'s Public School'
+    };
+    return schoolMap[registration.school_name] || registration.school_name;
+  };
+
+  const getDietaryDisplay = (registration: Registration) => {
+    if (registration.dietary_restrictions === 'other') {
+      return registration.dietary_restrictions_other || 'Other';
+    }
+    const dietaryMap: { [key: string]: string } = {
+      'none': 'None',
+      'vegetarian': 'Vegetarian',
+      'vegan': 'Vegan',
+      'kosher': 'Kosher',
+      'gluten-free': 'Gluten Free',
+      'halal': 'Halal'
+    };
+    return dietaryMap[registration.dietary_restrictions] || registration.dietary_restrictions;
+  };
+
+  const renderEditableField = (registration: Registration, field: keyof Registration, label: string, type: 'text' | 'number' | 'select' = 'text', options?: { value: string; label: string }[]) => {
+    const isEditing = editingRegistrations[registration.id]?.isEditing;
+    const editingRegistration = editingRegistrations[registration.id];
+    const currentValue = isEditing ? editingRegistration[field] : registration[field];
+    const displayValue = field === 'grade' ? getGradeDisplay(currentValue as string) :
+                        field === 'school_name' ? getSchoolDisplay(registration) :
+                        field === 'dietary_restrictions' ? getDietaryDisplay(registration) :
+                        currentValue;
+
+    // Check if we need to show custom input for "other" options
+    const showCustomInput = isEditing && 
+      ((field === 'school_name' && currentValue === 'other') ||
+       (field === 'dietary_restrictions' && currentValue === 'other'));
+
+    const customField = field === 'school_name' ? 'school_name_other' : 'dietary_restrictions_other';
+    const customValue = isEditing ? editingRegistration[customField] : registration[customField];
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <div className="flex-1">
+            {isEditing ? (
+              type === 'select' && options ? (
+                <Select
+                  value={currentValue as string}
+                  onValueChange={(value) => updateEditingField(registration.id, field, value)}
+                >
+                  <SelectTrigger className="text-sm">
+                    <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {options.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  type={type}
+                  value={currentValue as string}
+                  onChange={(e) => updateEditingField(registration.id, field, type === 'number' ? parseInt(e.target.value) : e.target.value)}
+                  className="text-sm"
+                />
+              )
+            ) : (
+              <div className="p-2 bg-background border rounded text-sm font-mono">
+                {displayValue}
+              </div>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => copyToClipboard(displayValue as string)}
+            className="h-8 w-8 p-0"
+          >
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
+        
+        {/* Show custom input field when "other" is selected */}
+        {showCustomInput && (
+          <div className="flex items-center space-x-2">
+            <div className="flex-1">
+              <Input
+                type="text"
+                value={customValue || ''}
+                onChange={(e) => updateEditingField(registration.id, customField, e.target.value)}
+                placeholder={`Enter custom ${field === 'school_name' ? 'school name' : 'dietary restriction'}`}
+                className="text-sm"
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => copyToClipboard(customValue || '')}
+              className="h-8 w-8 p-0"
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -142,7 +384,7 @@ const AdminRegistrations = () => {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, email, or university..."
+              placeholder="Search by name, email, or school..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -173,36 +415,187 @@ const AdminRegistrations = () => {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>University</TableHead>
-                  <TableHead>Experience</TableHead>
-                  <TableHead>Team</TableHead>
+                  <TableHead>Grade</TableHead>
+                  <TableHead>School</TableHead>
+                  <TableHead>Hackathons</TableHead>
+                  <TableHead>Dietary</TableHead>
                   <TableHead>Registered</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredRegistrations.map((registration) => (
-                  <TableRow key={registration.id}>
-                    <TableCell className="font-medium">
-                      {registration.full_name}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {registration.email}
-                    </TableCell>
-                    <TableCell>
-                      {registration.university || 'Not specified'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getExperienceBadgeColor(registration.experience_level)}>
-                        {registration.experience_level}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {registration.team_name || 'No team'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(registration.registered_at), 'MMM d, yyyy')}
-                    </TableCell>
-                  </TableRow>
+                  <React.Fragment key={registration.id}>
+                    <TableRow>
+                      <TableCell className="font-medium">
+                        {truncateText(registration.full_name, 25)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {truncateText(registration.email, 25)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {getGradeDisplay(registration.grade)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {truncateText(getSchoolDisplay(registration), 20)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {registration.hackathons_attended}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {truncateText(getDietaryDisplay(registration), 15)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(registration.registered_at), 'MMM d, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleRowExpansion(registration.id)}
+                            className="h-6 w-6 p-0"
+                          >
+                            {isRowExpanded(registration.id) ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {isRowExpanded(registration.id) && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="bg-muted/50">
+                          <div className="p-6 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-lg font-semibold">Participant Details</h4>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const details = `Name: ${registration.full_name}\nEmail: ${registration.email}\nGrade: ${getGradeDisplay(registration.grade)}\nSchool: ${getSchoolDisplay(registration)}\nHackathons Attended: ${registration.hackathons_attended}\nDietary Restrictions: ${getDietaryDisplay(registration)}\nRegistration Date: ${format(new Date(registration.registered_at), 'MMM d, yyyy')}`;
+                                    navigator.clipboard.writeText(details);
+                                  }}
+                                >
+                                  Copy All
+                                </Button>
+                                {editingRegistrations[registration.id]?.isEditing ? (
+                                  <>
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      onClick={() => saveRegistration(registration.id)}
+                                      disabled={saving[registration.id]}
+                                    >
+                                      {saving[registration.id] ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Save className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => cancelEditing(registration.id)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => startEditing(registration)}
+                                  >
+                                    Edit
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Full Name</label>
+                                  {renderEditableField(registration, 'full_name', 'Full Name')}
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Email Address</label>
+                                  {renderEditableField(registration, 'email', 'Email Address')}
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Grade Level</label>
+                                  {renderEditableField(registration, 'grade', 'Grade Level', 'select', [
+                                    { value: 'elementary-6-8', label: 'Elementary 6-8' },
+                                    { value: '9', label: 'Grade 9' },
+                                    { value: '10', label: 'Grade 10' },
+                                    { value: '11', label: 'Grade 11' },
+                                    { value: '12', label: 'Grade 12' }
+                                  ])}
+                                </div>
+                              </div>
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">School</label>
+                                  {renderEditableField(registration, 'school_name', 'School', 'select', [
+                                    { value: 'iroquois-ridge-high-school', label: 'Iroquois Ridge High School' },
+                                    { value: 'white-oaks-secondary-school', label: 'White Oaks Secondary School' },
+                                    { value: 'abbey-park-high-school', label: 'Abbey Park High School' },
+                                    { value: 'oakville-trafalgar-high-school', label: 'Oakville Trafalgar High School' },
+                                    { value: 'ta-blakelock-high-school', label: 'TA Blakelock High School' },
+                                    { value: 'garth-webb-secondary-school', label: 'Garth Webb Secondary School' },
+                                    { value: 'joshua-creek-public-school', label: 'Joshua Creek Public School' },
+                                    { value: 'falgarwood-public-school', label: 'Falgarwood Public School' },
+                                    { value: 'wh-morden-public-school', label: 'W.H. Morden Public School' },
+                                    { value: 'munns-public-school', label: 'Munn\'s Public School' },
+                                    { value: 'other', label: 'Other' }
+                                  ])}
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Hackathons Attended</label>
+                                  {renderEditableField(registration, 'hackathons_attended', 'Hackathons Attended', 'number')}
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Dietary Restrictions</label>
+                                  {renderEditableField(registration, 'dietary_restrictions', 'Dietary Restrictions', 'select', [
+                                    { value: 'none', label: 'None' },
+                                    { value: 'vegetarian', label: 'Vegetarian' },
+                                    { value: 'vegan', label: 'Vegan' },
+                                    { value: 'kosher', label: 'Kosher' },
+                                    { value: 'gluten-free', label: 'Gluten Free' },
+                                    { value: 'halal', label: 'Halal' },
+                                    { value: 'other', label: 'Other' }
+                                  ])}
+                                </div>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Registration Date</label>
+                              <div className="flex items-center space-x-2">
+                                <div className="flex-1 p-2 bg-background border rounded text-sm">
+                                  {format(new Date(registration.registered_at), 'MMMM d, yyyy \'at\' HH:mm')}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(format(new Date(registration.registered_at), 'MMMM d, yyyy \'at\' HH:mm'))}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>

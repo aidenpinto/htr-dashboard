@@ -112,8 +112,8 @@ const EventSchedule = () => {
                   <div className="flex items-center space-x-1">
                     <Clock className="w-4 h-4" />
                     <span>
-                      {format(new Date(event.start_time), 'MMM d, h:mm a')} - {' '}
-                      {format(new Date(event.end_time), 'h:mm a')}
+                                    {format(new Date(event.start_time), 'MMM d, HH:mm')} - {' '}
+              {format(new Date(event.end_time), 'HH:mm')}
                     </span>
                   </div>
                   

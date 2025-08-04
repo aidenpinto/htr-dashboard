@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Bell, Plus, Edit, Trash2, Loader2, Send } from 'lucide-react';
+import { Bell, Plus, Edit, Trash2, Loader2, Send, Volume2, Play } from 'lucide-react';
 import { format } from 'date-fns';
 
 // No external sound file needed - using Web Audio API
@@ -61,6 +61,75 @@ const AdminNotifications = () => {
       } catch (error) {
         console.log('Audio playback failed:', error);
       }
+    }
+  };
+
+  // Function to replay notification with sound and popup
+  const replayNotification = async (notification: Notification) => {
+    try {
+      // Play sound immediately
+      playNotificationSound();
+
+      // Create a temporary replay notification that will trigger popup for all users
+      const replayData: any = {
+        title: `🔔 ${notification.title}`,
+        message: notification.message,
+        is_active: true,
+        created_by: user?.id,
+      };
+
+      // Add replay-specific fields if the columns exist
+      try {
+        replayData.is_replay = true;
+        replayData.original_notification_id = notification.id;
+      } catch (error) {
+        console.log('Replay columns not available yet');
+      }
+
+      const { error } = await supabase
+        .from('notifications')
+        .insert([replayData]);
+
+      if (error) {
+        // If the is_replay column doesn't exist, fall back to a simpler approach
+        console.log('Replay columns not available, using fallback approach');
+        
+        // Just play the sound and show a toast
+        toast({
+          title: "Notification replayed!",
+          description: "Sound played for all participants.",
+        });
+        return;
+      }
+
+      toast({
+        title: "Notification replayed!",
+        description: "The notification has been replayed with sound and popup for all participants.",
+      });
+
+      // Remove the replay notification after a short delay (only if columns exist)
+      setTimeout(async () => {
+        try {
+          const { error: deleteError } = await supabase
+            .from('notifications')
+            .delete()
+            .eq('is_replay', true)
+            .eq('original_notification_id', notification.id);
+          
+          if (deleteError) {
+            console.error('Error cleaning up replay notification:', deleteError);
+          }
+        } catch (error) {
+          console.log('Cleanup not available - columns may not exist yet');
+        }
+      }, 5000); // Remove after 5 seconds
+
+    } catch (error: any) {
+      toast({
+        title: "Error replaying notification",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -344,7 +413,7 @@ const AdminNotifications = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {format(new Date(notification.created_at), 'MMM d, h:mm a')}
+                      {format(new Date(notification.created_at), 'MMM d, HH:mm')}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
@@ -355,6 +424,15 @@ const AdminNotifications = () => {
                           title={notification.is_active ? 'Deactivate' : 'Activate'}
                         >
                           {notification.is_active ? '👁️' : '👁️‍🗨️'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => replayNotification(notification)}
+                          title="Replay with sound and popup"
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          <Play className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="ghost"

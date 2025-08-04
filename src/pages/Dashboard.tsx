@@ -11,6 +11,7 @@ import htrLogo from '../assets/htr_logo_transparent.svg';
 import RegistrationForm from '@/components/RegistrationForm';
 import EventSchedule from '@/components/EventSchedule';
 import NotificationBanner from '@/components/NotificationBanner';
+import UserNotifications from '@/components/UserNotifications';
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -106,7 +107,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="registration" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:grid-cols-5">
             <TabsTrigger value="registration" className="flex items-center space-x-2">
               <Package className="w-4 h-4" />
               <span className="hidden sm:inline">Register</span>
@@ -114,6 +115,10 @@ const Dashboard = () => {
             <TabsTrigger value="schedule" className="flex items-center space-x-2">
               <Calendar className="w-4 h-4" />
               <span className="hidden sm:inline">Schedule</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center space-x-2">
+              <Bell className="w-4 h-4" />
+              <span className="hidden sm:inline">Notifications</span>
             </TabsTrigger>
             <TabsTrigger value="discord" className="flex items-center space-x-2">
               <MessageSquare className="w-4 h-4" />
@@ -131,6 +136,10 @@ const Dashboard = () => {
 
           <TabsContent value="schedule">
             <EventSchedule />
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <UserNotifications />
           </TabsContent>
 
           <TabsContent value="discord">

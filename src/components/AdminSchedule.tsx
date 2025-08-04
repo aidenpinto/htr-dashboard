@@ -344,8 +344,8 @@ const AdminSchedule = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      <div>{format(new Date(event.start_time), 'MMM d, h:mm a')}</div>
-                      <div className="text-xs">to {format(new Date(event.end_time), 'h:mm a')}</div>
+                                          <div>{format(new Date(event.start_time), 'MMM d, HH:mm')}</div>
+                    <div className="text-xs">to {format(new Date(event.end_time), 'HH:mm')}</div>
                     </TableCell>
                     <TableCell>{event.location || 'TBD'}</TableCell>
                     <TableCell>
