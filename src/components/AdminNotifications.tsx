@@ -214,7 +214,7 @@ const AdminNotifications = () => {
           title: "Notification sent!",
           description: "The notification has been sent to all participants.",
         });
-        playNotificationSound(); // Play sound on successful send
+        // Note: Sound will play on participant dashboards via real-time notifications
       }
 
       closeDialog();

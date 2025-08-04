@@ -33,7 +33,6 @@ const Auth = () => {
         email,
         options: {
           shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 

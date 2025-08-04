@@ -32,7 +32,8 @@ const Dashboard = () => {
             schema: 'public',
             table: 'notifications'
           },
-          () => {
+          (payload) => {
+            console.log('Dashboard: Real-time notification received', payload);
             loadNotifications();
           }
         )
@@ -45,6 +46,7 @@ const Dashboard = () => {
   }, [user]);
 
   const loadNotifications = async () => {
+    console.log('Dashboard: Loading notifications...');
     const { data } = await supabase
       .from('notifications')
       .select('*')
@@ -52,6 +54,10 @@ const Dashboard = () => {
       .order('created_at', { ascending: false });
     
     if (data) {
+      console.log('Dashboard: Notifications loaded', {
+        count: data.length,
+        notifications: data.map(n => ({ id: n.id, title: n.title }))
+      });
       setNotifications(data);
     }
   };

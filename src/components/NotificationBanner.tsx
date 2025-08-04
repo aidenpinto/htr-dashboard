@@ -21,7 +21,7 @@ interface NotificationBannerProps {
 const NotificationBanner: React.FC<NotificationBannerProps> = ({ notifications }) => {
   const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
   const [replayNotifications, setReplayNotifications] = useState<Notification[]>([]);
-  const [previousNotificationCount, setPreviousNotificationCount] = useState(0);
+  const [previousNotifications, setPreviousNotifications] = useState<Notification[]>([]);
 
   // Filter out replay notifications and handle them separately
   const regularNotifications = notifications.filter(notification => {
@@ -34,12 +34,29 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({ notifications }
 
   // Handle new regular notifications (play sound when new notifications arrive)
   useEffect(() => {
-    if (regularNotifications.length > previousNotificationCount && previousNotificationCount > 0) {
+    console.log('NotificationBanner: regularNotifications changed', {
+      count: regularNotifications.length,
+      notifications: regularNotifications.map(n => ({ id: n.id, title: n.title }))
+    });
+    
+    // Check for new notifications by comparing IDs
+    const newNotifications = regularNotifications.filter(notification => 
+      !previousNotifications.find(prev => prev.id === notification.id)
+    );
+
+    console.log('NotificationBanner: new notifications detected', {
+      count: newNotifications.length,
+      newNotifications: newNotifications.map(n => ({ id: n.id, title: n.title }))
+    });
+
+    if (newNotifications.length > 0) {
       // New notification received - play sound
+      console.log('NotificationBanner: playing sound for new notifications');
       playNotificationSound();
     }
-    setPreviousNotificationCount(regularNotifications.length);
-  }, [regularNotifications.length, previousNotificationCount]);
+
+    setPreviousNotifications(regularNotifications);
+  }, [regularNotifications]);
 
   // Handle new replay notifications
   useEffect(() => {
@@ -77,6 +94,7 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({ notifications }
   };
 
   const playNotificationSound = () => {
+    console.log('Playing notification sound...');
     if (typeof window !== 'undefined' && window.AudioContext) {
       try {
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -96,9 +114,13 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({ notifications }
         
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 0.3);
+        
+        console.log('Notification sound played successfully');
       } catch (error) {
         console.log('Audio playback failed:', error);
       }
+    } else {
+      console.log('AudioContext not available');
     }
   };
 
@@ -129,6 +151,17 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({ notifications }
       }
     }
   };
+
+  // Test function for debugging - can be called from browser console
+  const testSound = () => {
+    console.log('Testing notification sound...');
+    playNotificationSound();
+  };
+
+  // Expose test function globally for debugging
+  if (typeof window !== 'undefined') {
+    (window as any).testNotificationSound = testSound;
+  }
 
   // Don't render anything if no notifications
   if (visibleNotifications.length === 0 && visibleReplayNotifications.length === 0) {
