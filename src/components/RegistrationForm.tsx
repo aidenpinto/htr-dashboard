@@ -17,16 +17,10 @@ const RegistrationForm = () => {
   const [isRegistered, setIsRegistered] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
-    phone: '',
-    university: '',
-    year_of_study: '',
-    github_username: '',
-    experience_level: '',
-    team_name: '',
+    grade: '',
+    school_name: '',
+    hackathons_attended: '',
     dietary_restrictions: '',
-    t_shirt_size: '',
-    emergency_contact_name: '',
-    emergency_contact_phone: '',
   });
 
   useEffect(() => {
@@ -46,16 +40,10 @@ const RegistrationForm = () => {
       setIsRegistered(true);
       setFormData({
         full_name: data.full_name || '',
-        phone: data.phone || '',
-        university: data.university || '',
-        year_of_study: data.year_of_study || '',
-        github_username: data.github_username || '',
-        experience_level: data.experience_level || '',
-        team_name: data.team_name || '',
+        grade: data.grade || '',
+        school_name: data.school_name || '',
+        hackathons_attended: data.hackathons_attended || '',
         dietary_restrictions: data.dietary_restrictions || '',
-        t_shirt_size: data.t_shirt_size || '',
-        emergency_contact_name: data.emergency_contact_name || '',
-        emergency_contact_phone: data.emergency_contact_phone || '',
       });
     }
   };
@@ -136,7 +124,7 @@ const RegistrationForm = () => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
               <Label htmlFor="full_name">Full Name *</Label>
               <Input
@@ -148,121 +136,88 @@ const RegistrationForm = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="university">University/School</Label>
-              <Input
-                id="university"
-                value={formData.university}
-                onChange={(e) => handleInputChange('university', e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="year_of_study">Year of Study</Label>
-              <Select onValueChange={(value) => handleInputChange('year_of_study', value)}>
+              <Label htmlFor="grade">Grade *</Label>
+              <Select value={formData.grade} onValueChange={(value) => handleInputChange('grade', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select year" />
+                  <SelectValue placeholder="Select grade" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="high-school">High School</SelectItem>
-                  <SelectItem value="freshman">Freshman</SelectItem>
-                  <SelectItem value="sophomore">Sophomore</SelectItem>
-                  <SelectItem value="junior">Junior</SelectItem>
-                  <SelectItem value="senior">Senior</SelectItem>
-                  <SelectItem value="graduate">Graduate</SelectItem>
+                  <SelectItem value="elementary-6-8">Elementary 6-8</SelectItem>
+                  <SelectItem value="9">9</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="11">11</SelectItem>
+                  <SelectItem value="12">12</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="school_name">School Name *</Label>
+              <Select value={formData.school_name} onValueChange={(value) => handleInputChange('school_name', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select school" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="iroquois-ridge-high-school">Iroquois Ridge High School</SelectItem>
+                  <SelectItem value="white-oaks-secondary-school">White Oaks Secondary School</SelectItem>
+                  <SelectItem value="abbey-park-high-school">Abbey Park High School</SelectItem>
+                  <SelectItem value="oakville-trafalgar-high-school">Oakville Trafalgar High School</SelectItem>
+                  <SelectItem value="ta-blakelock-high-school">TA Blakelock High School</SelectItem>
+                  <SelectItem value="garth-webb-secondary-school">Garth Webb Secondary School</SelectItem>
+                  <SelectItem value="joshua-creek-public-school">Joshua Creek Public School</SelectItem>
+                  <SelectItem value="falgarwood-public-school">Falgarwood Public School</SelectItem>
+                  <SelectItem value="wh-morden-public-school">W.H. Morden Public School</SelectItem>
+                  <SelectItem value="munns-public-school">Munn's Public School</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
+              {formData.school_name === 'other' && (
+                <Input
+                  placeholder="Enter your school name"
+                  value={formData.school_name_other || ''}
+                  onChange={(e) => handleInputChange('school_name_other', e.target.value)}
+                  className="mt-2"
+                />
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="github_username">GitHub Username</Label>
+              <Label htmlFor="hackathons_attended">Number of Hackathons Attended *</Label>
               <Input
-                id="github_username"
-                value={formData.github_username}
-                onChange={(e) => handleInputChange('github_username', e.target.value)}
-                placeholder="@username"
+                id="hackathons_attended"
+                type="number"
+                min="0"
+                value={formData.hackathons_attended}
+                onChange={(e) => handleInputChange('hackathons_attended', e.target.value)}
+                required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="experience_level">Experience Level *</Label>
-              <Select onValueChange={(value) => handleInputChange('experience_level', value)}>
+              <Label htmlFor="dietary_restrictions">Dietary Restrictions *</Label>
+              <Select value={formData.dietary_restrictions} onValueChange={(value) => handleInputChange('dietary_restrictions', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select experience level" />
+                  <SelectValue placeholder="Select dietary restrictions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="beginner">Beginner</SelectItem>
-                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                  <SelectItem value="advanced">Advanced</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                  <SelectItem value="vegan">Vegan</SelectItem>
+                  <SelectItem value="kosher">Kosher</SelectItem>
+                  <SelectItem value="gluten-free">Gluten Free</SelectItem>
+                  <SelectItem value="halal">Halal</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
+              {formData.dietary_restrictions === 'other' && (
+                <Input
+                  placeholder="Please specify dietary restrictions"
+                  value={formData.dietary_restrictions_other || ''}
+                  onChange={(e) => handleInputChange('dietary_restrictions_other', e.target.value)}
+                  className="mt-2"
+                />
+              )}
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="team_name">Team Name (if applicable)</Label>
-              <Input
-                id="team_name"
-                value={formData.team_name}
-                onChange={(e) => handleInputChange('team_name', e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="t_shirt_size">T-Shirt Size</Label>
-              <Select onValueChange={(value) => handleInputChange('t_shirt_size', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select size" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="xs">XS</SelectItem>
-                  <SelectItem value="s">S</SelectItem>
-                  <SelectItem value="m">M</SelectItem>
-                  <SelectItem value="l">L</SelectItem>
-                  <SelectItem value="xl">XL</SelectItem>
-                  <SelectItem value="2xl">2XL</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="emergency_contact_name">Emergency Contact Name</Label>
-              <Input
-                id="emergency_contact_name"
-                value={formData.emergency_contact_name}
-                onChange={(e) => handleInputChange('emergency_contact_name', e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="emergency_contact_phone">Emergency Contact Phone</Label>
-              <Input
-                id="emergency_contact_phone"
-                type="tel"
-                value={formData.emergency_contact_phone}
-                onChange={(e) => handleInputChange('emergency_contact_phone', e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="dietary_restrictions">Dietary Restrictions</Label>
-            <Textarea
-              id="dietary_restrictions"
-              value={formData.dietary_restrictions}
-              onChange={(e) => handleInputChange('dietary_restrictions', e.target.value)}
-              placeholder="Any dietary restrictions or allergies we should know about?"
-              rows={3}
-            />
           </div>
 
           <Button 
