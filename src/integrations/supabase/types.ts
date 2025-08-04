@@ -74,15 +74,20 @@ export type Database = {
       registrations: {
         Row: {
           dietary_restrictions: string | null
+          dietary_restrictions_other: string | null
           email: string
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           experience_level: string
           full_name: string
           github_username: string | null
+          grade: string | null
+          hackathons_attended: number | null
           id: string
           phone: string | null
           registered_at: string
+          school_name: string | null
+          school_name_other: string | null
           t_shirt_size: string | null
           team_name: string | null
           university: string | null
@@ -91,15 +96,20 @@ export type Database = {
         }
         Insert: {
           dietary_restrictions?: string | null
+          dietary_restrictions_other?: string | null
           email: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           experience_level: string
           full_name: string
           github_username?: string | null
+          grade?: string | null
+          hackathons_attended?: number | null
           id?: string
           phone?: string | null
           registered_at?: string
+          school_name?: string | null
+          school_name_other?: string | null
           t_shirt_size?: string | null
           team_name?: string | null
           university?: string | null
@@ -108,15 +118,20 @@ export type Database = {
         }
         Update: {
           dietary_restrictions?: string | null
+          dietary_restrictions_other?: string | null
           email?: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           experience_level?: string
           full_name?: string
           github_username?: string | null
+          grade?: string | null
+          hackathons_attended?: number | null
           id?: string
           phone?: string | null
           registered_at?: string
+          school_name?: string | null
+          school_name_other?: string | null
           t_shirt_size?: string | null
           team_name?: string | null
           university?: string | null

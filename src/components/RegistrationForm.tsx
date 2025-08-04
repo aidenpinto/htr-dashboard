@@ -21,6 +21,8 @@ const RegistrationForm = () => {
     school_name: '',
     hackathons_attended: '',
     dietary_restrictions: '',
+    school_name_other: '',
+    dietary_restrictions_other: '',
   });
 
   useEffect(() => {
@@ -42,8 +44,10 @@ const RegistrationForm = () => {
         full_name: data.full_name || '',
         grade: data.grade || '',
         school_name: data.school_name || '',
-        hackathons_attended: data.hackathons_attended || '',
+        hackathons_attended: data.hackathons_attended?.toString() || '',
         dietary_restrictions: data.dietary_restrictions || '',
+        school_name_other: data.school_name_other || '',
+        dietary_restrictions_other: data.dietary_restrictions_other || '',
       });
     }
   };
@@ -56,7 +60,14 @@ const RegistrationForm = () => {
       const registrationData = {
         user_id: user?.id,
         email: user?.email,
-        ...formData,
+        full_name: formData.full_name,
+        grade: formData.grade,
+        school_name: formData.school_name,
+        hackathons_attended: parseInt(formData.hackathons_attended) || 0,
+        dietary_restrictions: formData.dietary_restrictions,
+        school_name_other: formData.school_name_other,
+        dietary_restrictions_other: formData.dietary_restrictions_other,
+        experience_level: 'beginner', // Default value as required by schema
       };
 
       if (isRegistered) {
