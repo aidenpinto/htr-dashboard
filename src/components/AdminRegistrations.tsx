@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Search, Download, Loader2, ChevronDown, ChevronUp, Copy, Save, X } from 'lucide-react';
+import { Users, Search, Download, Loader2, ChevronDown, ChevronUp, Copy, Save, X, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Registration {
@@ -36,6 +38,8 @@ const AdminRegistrations = () => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [editingRegistrations, setEditingRegistrations] = useState<{ [key: string]: EditingRegistration }>({});
   const [saving, setSaving] = useState<{ [key: string]: boolean }>({});
+  const [deletingRegistration, setDeletingRegistration] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadRegistrations();
@@ -150,6 +154,39 @@ const AdminRegistrations = () => {
       console.error('Error saving registration:', error);
     } finally {
       setSaving(prev => ({ ...prev, [registrationId]: false }));
+    }
+  };
+
+  const deleteRegistration = async (registrationId: string, userEmail: string) => {
+    setDeletingRegistration(registrationId);
+
+    try {
+      // Delete only the registration data
+      const { error: regError } = await supabase
+        .from('registrations')
+        .delete()
+        .eq('id', registrationId);
+
+      if (regError) {
+        throw regError;
+      }
+
+      toast({
+        title: "Registration Removed",
+        description: `${userEmail}'s registration has been deleted. Their account remains intact.`,
+      });
+
+      // Reload registrations list
+      loadRegistrations();
+    } catch (error: any) {
+      console.error('Error deleting registration:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete registration",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingRegistration(null);
     }
   };
 
@@ -517,6 +554,47 @@ const AdminRegistrations = () => {
                                     Edit
                                   </Button>
                                 )}
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      disabled={deletingRegistration === registration.id}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      {deletingRegistration === registration.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Registration</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete <strong>{registration.full_name}</strong>'s registration?
+                                        <br /><br />
+                                        This action will:
+                                        <ul className="list-disc list-inside mt-2 space-y-1">
+                                          <li>Remove their registration data from the event</li>
+                                          <li>Keep their account intact (they can still log in)</li>
+                                          <li>Allow them to register again if needed</li>
+                                          <li>This action cannot be undone</li>
+                                        </ul>
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => deleteRegistration(registration.id, registration.email)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete Registration
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -591,6 +669,7 @@ const AdminRegistrations = () => {
                                 </Button>
                               </div>
                             </div>
+
                           </div>
                         </TableCell>
                       </TableRow>

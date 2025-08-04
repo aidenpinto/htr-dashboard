@@ -184,6 +184,39 @@ const AdminUsers = () => {
     }
   };
 
+  const deleteRegistrationOnly = async (userId: string, userEmail: string) => {
+    setDeletingUser(userId);
+  
+    try {
+      // Delete only the registration data
+      const { error: regError } = await supabase
+        .from('registrations')
+        .delete()
+        .eq('user_id', userId);
+  
+      if (regError) {
+        throw regError;
+      }
+  
+      toast({
+        title: "Registration Removed",
+        description: `${userEmail}'s registration data has been deleted. Their account remains intact.`,
+      });
+  
+      // Reload users list
+      loadUsers();
+    } catch (error: any) {
+      console.error('Error deleting registration:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete registration data",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingUser(null);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -284,47 +317,92 @@ const AdminUsers = () => {
                       }
                     </TableCell>
                     <TableCell>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={deletingUser === user.id}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            {deletingUser === user.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <UserX className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove User</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to completely remove <strong>{user.email}</strong> from the system?
-                              <br /><br />
-                              This action will:
-                              <ul className="list-disc list-inside mt-2 space-y-1">
-                                <li>Delete their registration data</li>
-                                <li>Delete their profile</li>
-                                <li>Remove their authentication account</li>
-                                <li>This action cannot be undone</li>
-                              </ul>
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteUser(user.id, user.email)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      <div className="flex items-center space-x-1">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={deletingUser === user.id}
+                              className="text-destructive hover:text-destructive"
+                              title="Delete user completely"
                             >
-                              Remove User
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                              {deletingUser === user.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <UserX className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remove User Completely</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to completely remove <strong>{user.email}</strong> from the system?
+                                <br /><br />
+                                This action will:
+                                <ul className="list-disc list-inside mt-2 space-y-1">
+                                  <li>Delete their registration data</li>
+                                  <li>Delete their profile</li>
+                                  <li>Remove their authentication account</li>
+                                  <li>This action cannot be undone</li>
+                                </ul>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteUser(user.id, user.email)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Remove User Completely
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={deletingUser === user.id}
+                              className="text-orange-600 hover:text-orange-700"
+                              title="Delete registration only"
+                            >
+                              {deletingUser === user.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Registration Only</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete <strong>{user.email}</strong>'s registration only?
+                                <br /><br />
+                                This action will:
+                                <ul className="list-disc list-inside mt-2 space-y-1">
+                                  <li>Remove their registration data from the event</li>
+                                  <li>Keep their account intact (they can still log in)</li>
+                                  <li>Allow them to register again if needed</li>
+                                  <li>This action cannot be undone</li>
+                                </ul>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteRegistrationOnly(user.id, user.email)}
+                                className="bg-orange-600 text-white hover:bg-orange-700"
+                              >
+                                Delete Registration Only
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
