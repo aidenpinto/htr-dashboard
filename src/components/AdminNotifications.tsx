@@ -14,6 +14,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Bell, Plus, Edit, Trash2, Loader2, Send } from 'lucide-react';
 import { format } from 'date-fns';
 
+// No external sound file needed - using Web Audio API
+
 interface Notification {
   id: string;
   title: string;
@@ -34,6 +36,33 @@ const AdminNotifications = () => {
     is_active: true,
   });
   const { toast } = useToast();
+
+  // Function to play notification sound using Web Audio API
+  const playNotificationSound = () => {
+    if (typeof window !== 'undefined' && window.AudioContext) {
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Create a pleasant notification sound
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // Start at 800Hz
+        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1); // Rise to 1000Hz
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2); // Back to 800Hz
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); // Start volume
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); // Fade out
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+      } catch (error) {
+        console.log('Audio playback failed:', error);
+      }
+    }
+  };
 
   useEffect(() => {
     loadNotifications();
@@ -116,6 +145,7 @@ const AdminNotifications = () => {
           title: "Notification sent!",
           description: "The notification has been sent to all participants.",
         });
+        playNotificationSound(); // Play sound on successful send
       }
 
       closeDialog();

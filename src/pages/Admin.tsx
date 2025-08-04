@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { Mountain, Users, Calendar, Bell, LogOut, Settings } from 'lucide-react';
+import { Users, Calendar, Bell, LogOut, Settings } from 'lucide-react';
+import htrLogo from '../assets/htr_logo_transparent.svg';
 import AdminRegistrations from '@/components/AdminRegistrations';
 import AdminSchedule from '@/components/AdminSchedule';
 import AdminNotifications from '@/components/AdminNotifications';
@@ -78,9 +79,7 @@ const Admin = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center">
-                <Mountain className="w-6 h-6 text-white" />
-              </div>
+              <img src={htrLogo} alt="HTR Logo" className="w-16 h-16 object-contain" />
               <div>
                 <h1 className="text-xl font-bold">Hack the Ridge</h1>
                 <p className="text-sm text-muted-foreground">Admin Dashboard</p>

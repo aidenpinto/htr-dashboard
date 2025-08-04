@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Mountain } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import htrLogo from '../assets/htr_logo_transparent.svg';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -84,9 +85,7 @@ const Auth = () => {
     <div className="min-h-screen gradient-subtle flex items-center justify-center p-4">
       <Card className="w-full max-w-md gradient-card border-0 shadow-2xl">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center">
-            <Mountain className="w-8 h-8 text-white" />
-          </div>
+          <img src={htrLogo} alt="HTR Logo" className="mx-auto w-20 h-20 object-contain" />
           <div>
             <CardTitle className="text-2xl font-bold">Hack the Ridge</CardTitle>
             <CardDescription className="text-base">
