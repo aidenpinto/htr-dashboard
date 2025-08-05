@@ -6,21 +6,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, MessageSquare, Package, Bell, LogOut } from 'lucide-react';
+import { Calendar, MessageSquare, Package, Bell, LogOut, Users } from 'lucide-react';
 import htrLogo from '../assets/htr_logo_transparent.svg';
 import RegistrationForm from '@/components/RegistrationForm';
 import EventSchedule from '@/components/EventSchedule';
 import NotificationBanner from '@/components/NotificationBanner';
 import UserNotifications from '@/components/UserNotifications';
+import TeamManagement from '@/components/TeamManagement';
+import TeamInviteNotification from '@/components/TeamInviteNotification';
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [teamInvites, setTeamInvites] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
       // Load notifications
       loadNotifications();
+      loadTeamInvites();
 
       // Set up real-time notifications
       const channel = supabase
@@ -35,6 +39,24 @@ const Dashboard = () => {
           (payload) => {
             console.log('Dashboard: Real-time notification received', payload);
             loadNotifications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'team_invites'
+          },
+          (payload) => {
+            console.log('Dashboard: Real-time team invite received', payload);
+            console.log('Payload details:', {
+              event: payload.eventType,
+              table: payload.table,
+              new: payload.new,
+              old: payload.old
+            });
+            loadTeamInvites();
           }
         )
         .subscribe();
@@ -62,6 +84,25 @@ const Dashboard = () => {
     }
   };
 
+  const loadTeamInvites = async () => {
+    console.log('Dashboard: Loading team invites for email:', user?.email);
+    const { data, error } = await supabase
+      .from('team_invites')
+      .select('*')
+      .eq('invitee_email', user?.email)
+      .eq('status', 'pending');
+    
+    if (error) {
+      console.error('Dashboard: Error loading team invites:', error);
+    } else {
+      console.log('Dashboard: Team invites loaded', {
+        count: data?.length || 0,
+        invites: data?.map(i => ({ id: i.id, team_id: i.team_id, invitee_email: i.invitee_email })) || []
+      });
+      setTeamInvites(data || []);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen gradient-subtle flex items-center justify-center">
@@ -76,7 +117,44 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen gradient-subtle">
-      {/* Notifications Banner */}
+      {/* Team Invite Notifications - Must be responded to */}
+      {teamInvites.length > 0 && (
+        <div className="bg-primary/10 border-b border-primary/20 p-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="space-y-4">
+              {teamInvites.map((invite) => (
+                <TeamInviteNotification
+                  key={invite.id}
+                  invite={invite}
+                  onRespond={loadTeamInvites}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Debug info - remove this later */}
+      <div className="bg-yellow-100 border-b border-yellow-300 p-2 text-xs">
+        <div className="max-w-7xl mx-auto">
+          <span className="font-medium">Debug:</span> Team invites count: {teamInvites.length} | 
+          User email: {user?.email} | 
+          <button 
+            onClick={loadTeamInvites}
+            className="ml-2 underline text-blue-600"
+          >
+            Refresh invites
+          </button>
+          <button 
+            onClick={() => console.log('Current teamInvites:', teamInvites)}
+            className="ml-2 underline text-green-600"
+          >
+            Log invites
+          </button>
+        </div>
+      </div>
+
+      {/* Regular Notifications Banner */}
       {notifications.length > 0 && (
         <NotificationBanner notifications={notifications} />
       )}
@@ -113,31 +191,39 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="registration" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:grid-cols-5">
-            <TabsTrigger value="registration" className="flex items-center space-x-2">
-              <Package className="w-4 h-4" />
-              <span className="hidden sm:inline">Register</span>
-            </TabsTrigger>
-            <TabsTrigger value="schedule" className="flex items-center space-x-2">
-              <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Schedule</span>
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center space-x-2">
-              <Bell className="w-4 h-4" />
-              <span className="hidden sm:inline">Notifications</span>
-            </TabsTrigger>
-            <TabsTrigger value="discord" className="flex items-center space-x-2">
-              <MessageSquare className="w-4 h-4" />
-              <span className="hidden sm:inline">Discord</span>
-            </TabsTrigger>
-            <TabsTrigger value="resources" className="flex items-center space-x-2">
-              <Package className="w-4 h-4" />
-              <span className="hidden sm:inline">Resources</span>
-            </TabsTrigger>
-          </TabsList>
+                  <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:grid-cols-6">
+          <TabsTrigger value="registration" className="flex items-center space-x-2">
+            <Package className="w-4 h-4" />
+            <span className="hidden sm:inline">Register</span>
+          </TabsTrigger>
+          <TabsTrigger value="teams" className="flex items-center space-x-2">
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">Teams</span>
+          </TabsTrigger>
+          <TabsTrigger value="schedule" className="flex items-center space-x-2">
+            <Calendar className="w-4 h-4" />
+            <span className="hidden sm:inline">Schedule</span>
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center space-x-2">
+            <Bell className="w-4 h-4" />
+            <span className="hidden sm:inline">Notifications</span>
+          </TabsTrigger>
+          <TabsTrigger value="discord" className="flex items-center space-x-2">
+            <MessageSquare className="w-4 h-4" />
+            <span className="hidden sm:inline">Discord</span>
+          </TabsTrigger>
+          <TabsTrigger value="resources" className="flex items-center space-x-2">
+            <Package className="w-4 h-4" />
+            <span className="hidden sm:inline">Resources</span>
+          </TabsTrigger>
+        </TabsList>
 
           <TabsContent value="registration">
             <RegistrationForm />
+          </TabsContent>
+
+          <TabsContent value="teams">
+            <TeamManagement />
           </TabsContent>
 
           <TabsContent value="schedule">

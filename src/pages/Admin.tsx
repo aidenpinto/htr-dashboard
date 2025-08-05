@@ -12,6 +12,7 @@ import AdminRegistrations from '@/components/AdminRegistrations';
 import AdminSchedule from '@/components/AdminSchedule';
 import AdminNotifications from '@/components/AdminNotifications';
 import AdminUsers from '@/components/AdminUsers';
+import AdminTeams from '@/components/AdminTeams';
 
 const Admin = () => {
   const { user, loading, signOut } = useAuth();
@@ -111,27 +112,35 @@ const Admin = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="registrations" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
-            <TabsTrigger value="registrations" className="flex items-center space-x-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Registrations</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center space-x-2">
-              <UserX className="w-4 h-4" />
-              <span className="hidden sm:inline">Users</span>
-            </TabsTrigger>
-            <TabsTrigger value="schedule" className="flex items-center space-x-2">
-              <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Schedule</span>
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center space-x-2">
-              <Bell className="w-4 h-4" />
-              <span className="hidden sm:inline">Notifications</span>
-            </TabsTrigger>
-          </TabsList>
+                  <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:grid-cols-5">
+          <TabsTrigger value="registrations" className="flex items-center space-x-2">
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">Registrations</span>
+          </TabsTrigger>
+          <TabsTrigger value="teams" className="flex items-center space-x-2">
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">Teams</span>
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex items-center space-x-2">
+            <UserX className="w-4 h-4" />
+            <span className="hidden sm:inline">Users</span>
+          </TabsTrigger>
+          <TabsTrigger value="schedule" className="flex items-center space-x-2">
+            <Calendar className="w-4 h-4" />
+            <span className="hidden sm:inline">Schedule</span>
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center space-x-2">
+            <Bell className="w-4 h-4" />
+            <span className="hidden sm:inline">Notifications</span>
+          </TabsTrigger>
+        </TabsList>
 
           <TabsContent value="registrations">
             <AdminRegistrations />
+          </TabsContent>
+
+          <TabsContent value="teams">
+            <AdminTeams />
           </TabsContent>
 
           <TabsContent value="users">

@@ -176,6 +176,129 @@ export type Database = {
         }
         Relationships: []
       }
+      teams: {
+        Row: {
+          id: string
+          name: string
+          leader_id: string
+          room: string
+          is_finalized: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          leader_id: string
+          room: string
+          is_finalized?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          leader_id?: string
+          room?: string
+          is_finalized?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      team_members: {
+        Row: {
+          id: string
+          team_id: string
+          user_id: string
+          status: string
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          user_id: string
+          status?: string
+          joined_at?: string
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          user_id?: string
+          status?: string
+          joined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      team_invites: {
+        Row: {
+          id: string
+          team_id: string
+          inviter_id: string
+          invitee_email: string
+          status: string
+          created_at: string
+          expires_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          inviter_id: string
+          invitee_email: string
+          status?: string
+          created_at?: string
+          expires_at?: string
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          inviter_id?: string
+          invitee_email?: string
+          status?: string
+          created_at?: string
+          expires_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invites_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invites_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
     }
     Views: {
       [_ in never]: never
@@ -185,6 +308,7 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+
     }
     Enums: {
       [_ in never]: never

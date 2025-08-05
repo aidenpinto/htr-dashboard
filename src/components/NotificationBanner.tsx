@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Bell, X } from 'lucide-react';
@@ -21,7 +21,7 @@ interface NotificationBannerProps {
 const NotificationBanner: React.FC<NotificationBannerProps> = ({ notifications }) => {
   const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
   const [replayNotifications, setReplayNotifications] = useState<Notification[]>([]);
-  const [previousNotifications, setPreviousNotifications] = useState<Notification[]>([]);
+  const previousNotificationsRef = useRef<Notification[]>([]);
 
   // Filter out replay notifications and handle them separately
   const regularNotifications = notifications.filter(notification => {
@@ -41,7 +41,7 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({ notifications }
     
     // Check for new notifications by comparing IDs
     const newNotifications = regularNotifications.filter(notification => 
-      !previousNotifications.find(prev => prev.id === notification.id)
+      !previousNotificationsRef.current.find(prev => prev.id === notification.id)
     );
 
     console.log('NotificationBanner: new notifications detected', {
@@ -55,7 +55,7 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({ notifications }
       playNotificationSound();
     }
 
-    setPreviousNotifications(regularNotifications);
+    previousNotificationsRef.current = regularNotifications;
   }, [regularNotifications]);
 
   // Handle new replay notifications
@@ -84,14 +84,14 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({ notifications }
     notification => !dismissedNotifications.includes(notification.id)
   );
 
-  const dismissNotification = (id: string) => {
+  const dismissNotification = useCallback((id: string) => {
     setDismissedNotifications(prev => [...prev, id]);
-  };
+  }, []);
 
-  const dismissReplayNotification = (id: string) => {
+  const dismissReplayNotification = useCallback((id: string) => {
     setDismissedNotifications(prev => [...prev, id]);
     setReplayNotifications(prev => prev.filter(n => n.id !== id));
-  };
+  }, []);
 
   const playNotificationSound = () => {
     console.log('Playing notification sound...');
