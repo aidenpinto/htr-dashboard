@@ -20,7 +20,9 @@ export type Database = {
           created_by: string
           id: string
           is_active: boolean | null
+          is_replay: boolean | null
           message: string
+          original_notification_id: string | null
           title: string
         }
         Insert: {
@@ -28,7 +30,9 @@ export type Database = {
           created_by: string
           id?: string
           is_active?: boolean | null
+          is_replay?: boolean | null
           message: string
+          original_notification_id?: string | null
           title: string
         }
         Update: {
@@ -36,10 +40,20 @@ export type Database = {
           created_by?: string
           id?: string
           is_active?: boolean | null
+          is_replay?: boolean | null
           message?: string
+          original_notification_id?: string | null
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_original_notification_id_fkey"
+            columns: ["original_notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -176,110 +190,33 @@ export type Database = {
         }
         Relationships: []
       }
-      teams: {
-        Row: {
-          id: string
-          name: string
-          leader_id: string
-          room: string
-          is_finalized: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          leader_id: string
-          room: string
-          is_finalized?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          leader_id?: string
-          room?: string
-          is_finalized?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "teams_leader_id_fkey"
-            columns: ["leader_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      team_members: {
-        Row: {
-          id: string
-          team_id: string
-          user_id: string
-          status: string
-          joined_at: string
-        }
-        Insert: {
-          id?: string
-          team_id: string
-          user_id: string
-          status?: string
-          joined_at?: string
-        }
-        Update: {
-          id?: string
-          team_id?: string
-          user_id?: string
-          status?: string
-          joined_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "team_members_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "team_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       team_invites: {
         Row: {
+          created_at: string | null
+          expires_at: string | null
           id: string
-          team_id: string
-          inviter_id: string
           invitee_email: string
-          status: string
-          created_at: string
-          expires_at: string
+          inviter_id: string
+          status: string | null
+          team_id: string
         }
         Insert: {
+          created_at?: string | null
+          expires_at?: string | null
           id?: string
-          team_id: string
-          inviter_id: string
           invitee_email: string
-          status?: string
-          created_at?: string
-          expires_at?: string
+          inviter_id: string
+          status?: string | null
+          team_id: string
         }
         Update: {
+          created_at?: string | null
+          expires_at?: string | null
           id?: string
-          team_id?: string
-          inviter_id?: string
           invitee_email?: string
-          status?: string
-          created_at?: string
-          expires_at?: string
+          inviter_id?: string
+          status?: string | null
+          team_id?: string
         }
         Relationships: [
           {
@@ -289,26 +226,150 @@ export type Database = {
             referencedRelation: "teams"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "team_invites_inviter_id_fkey"
-            columns: ["inviter_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
         ]
       }
-
+      team_members: {
+        Row: {
+          id: string
+          joined_at: string | null
+          status: string | null
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          status?: string | null
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          status?: string | null
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          confirmed: boolean | null
+          created_at: string | null
+          id: string
+          is_finalized: boolean | null
+          leader_id: string
+          name: string
+          room: string
+          updated_at: string | null
+        }
+        Insert: {
+          confirmed?: boolean | null
+          created_at?: string | null
+          id?: string
+          is_finalized?: boolean | null
+          leader_id: string
+          name: string
+          room?: string
+          updated_at?: string | null
+        }
+        Update: {
+          confirmed?: boolean | null
+          created_at?: string | null
+          id?: string
+          is_finalized?: boolean | null
+          leader_id?: string
+          name?: string
+          room?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_notifications: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          is_active: boolean | null
+          message: string
+          read_at: string | null
+          team_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          message: string
+          read_at?: string | null
+          team_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          read_at?: string | null
+          team_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      accept_team_invite: {
+        Args: { invite_id: string }
+        Returns: undefined
+      }
+      check_room_capacity: {
+        Args: { room_name: string; team_id?: string }
+        Returns: boolean
+      }
+      decline_team_invite: {
+        Args: { invite_id: string }
+        Returns: undefined
+      }
+      delete_user_completely: {
+        Args: { user_id_to_delete: string }
+        Returns: string
+      }
+      get_team_members_count: {
+        Args: { team_uuid: string }
+        Returns: number
+      }
       is_current_user_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-
+      is_team_leader: {
+        Args: { team_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

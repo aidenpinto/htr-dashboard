@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -24,6 +25,7 @@ interface Registration {
   dietary_restrictions_other: string;
   experience_level: string;
   registered_at: string;
+  checked_in: boolean;
 }
 
 interface EditingRegistration extends Registration {
@@ -35,6 +37,7 @@ const AdminRegistrations = () => {
   const [filteredRegistrations, setFilteredRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [checkInFilter, setCheckInFilter] = useState<'all' | 'checked-in' | 'not-checked-in'>('all');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [editingRegistrations, setEditingRegistrations] = useState<{ [key: string]: EditingRegistration }>({});
   const [saving, setSaving] = useState<{ [key: string]: boolean }>({});
@@ -46,18 +49,27 @@ const AdminRegistrations = () => {
   }, []);
 
   useEffect(() => {
+    let filtered = registrations;
+    
+    // Apply search filter
     if (searchTerm) {
-      const filtered = registrations.filter(reg =>
+      filtered = filtered.filter(reg =>
         reg.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         reg.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         reg.school_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (reg.school_name_other && reg.school_name_other.toLowerCase().includes(searchTerm.toLowerCase()))
       );
-      setFilteredRegistrations(filtered);
-    } else {
-      setFilteredRegistrations(registrations);
     }
-  }, [searchTerm, registrations]);
+    
+    // Apply check-in filter
+    if (checkInFilter === 'checked-in') {
+      filtered = filtered.filter(reg => reg.checked_in);
+    } else if (checkInFilter === 'not-checked-in') {
+      filtered = filtered.filter(reg => !reg.checked_in);
+    }
+    
+    setFilteredRegistrations(filtered);
+  }, [searchTerm, checkInFilter, registrations]);
 
   const toggleRowExpansion = (registrationId: string) => {
     const newExpandedRows = new Set(expandedRows);
@@ -190,6 +202,47 @@ const AdminRegistrations = () => {
     }
   };
 
+  const toggleCheckInStatus = async (registrationId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('registrations')
+        .update({ checked_in: !currentStatus } as any)
+        .eq('id', registrationId);
+
+      if (error) throw error;
+
+      // Update the local state
+      setRegistrations(prev => 
+        prev.map(reg => 
+          reg.id === registrationId 
+            ? { ...reg, checked_in: !currentStatus }
+            : reg
+        )
+      );
+      setFilteredRegistrations(prev => 
+        prev.map(reg => 
+          reg.id === registrationId 
+            ? { ...reg, checked_in: !currentStatus }
+            : reg
+        )
+      );
+
+      toast({
+        title: "Check-in Status Updated",
+        description: `Participant ${!currentStatus ? 'checked in' : 'check-in removed'} successfully.`,
+      });
+    } catch (error: any) {
+      console.error('Error updating check-in status:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update check-in status",
+        variant: "destructive",
+      });
+    }
+  };
+
+
+
   const loadRegistrations = async () => {
     try {
       const { data, error } = await supabase
@@ -199,8 +252,14 @@ const AdminRegistrations = () => {
 
       if (error) throw error;
 
-      setRegistrations(data || []);
-      setFilteredRegistrations(data || []);
+      // Handle cases where checked_in field might not exist yet
+      const registrationsWithCheckedIn = (data || []).map(reg => ({
+        ...reg,
+        checked_in: (reg as any).checked_in ?? false
+      }));
+
+      setRegistrations(registrationsWithCheckedIn);
+      setFilteredRegistrations(registrationsWithCheckedIn);
     } catch (error) {
       console.error('Error loading registrations:', error);
     } finally {
@@ -211,7 +270,7 @@ const AdminRegistrations = () => {
   const exportToCSV = () => {
     const headers = [
       'Name', 'Email', 'Grade', 'School', 'Hackathons Attended', 
-      'Dietary Restrictions', 'Registration Date'
+      'Dietary Restrictions', 'Checked In', 'Registration Date'
     ];
     
     const csvContent = [
@@ -223,6 +282,7 @@ const AdminRegistrations = () => {
         reg.school_name === 'other' ? reg.school_name_other : reg.school_name,
         reg.hackathons_attended,
         reg.dietary_restrictions === 'other' ? reg.dietary_restrictions_other : reg.dietary_restrictions,
+        reg.checked_in ? 'Yes' : 'No',
         format(new Date(reg.registered_at), 'yyyy-MM-dd HH:mm:ss')
       ].join(','))
     ].join('\n');
@@ -411,9 +471,14 @@ const AdminRegistrations = () => {
               Manage and export participant registration data
             </CardDescription>
           </div>
-          <Badge variant="secondary" className="text-lg px-3 py-1">
-            {filteredRegistrations.length} participants
-          </Badge>
+          <div className="flex items-center space-x-3">
+            <Badge variant="outline" className="text-lg px-3 py-1">
+              {filteredRegistrations.filter(reg => reg.checked_in).length} checked in
+            </Badge>
+            <Badge variant="secondary" className="text-lg px-3 py-1">
+              {filteredRegistrations.length} participants
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -427,6 +492,16 @@ const AdminRegistrations = () => {
               className="pl-10"
             />
           </div>
+          <Select value={checkInFilter} onValueChange={(value: 'all' | 'checked-in' | 'not-checked-in') => setCheckInFilter(value)}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by check-in status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Participants</SelectItem>
+              <SelectItem value="checked-in">Checked In</SelectItem>
+              <SelectItem value="not-checked-in">Not Checked In</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             onClick={exportToCSV}
             variant="outline"
@@ -450,6 +525,7 @@ const AdminRegistrations = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Checked In</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Grade</TableHead>
@@ -463,7 +539,16 @@ const AdminRegistrations = () => {
               <TableBody>
                 {filteredRegistrations.map((registration) => (
                   <React.Fragment key={registration.id}>
-                    <TableRow>
+                    <TableRow className={registration.checked_in ? "bg-green-50 dark:bg-green-950/20" : ""}>
+                      <TableCell>
+                        <div className="flex items-center justify-center">
+                          <Checkbox
+                            checked={registration.checked_in}
+                            onCheckedChange={() => toggleCheckInStatus(registration.id, registration.checked_in)}
+                            className="w-5 h-5"
+                          />
+                        </div>
+                      </TableCell>
                       <TableCell className="font-medium">
                         {truncateText(registration.full_name, 25)}
                       </TableCell>
@@ -508,7 +593,7 @@ const AdminRegistrations = () => {
                     </TableRow>
                     {isRowExpanded(registration.id) && (
                       <TableRow>
-                        <TableCell colSpan={8} className="bg-muted/50">
+                        <TableCell colSpan={9} className="bg-muted/50">
                           <div className="p-6 space-y-4">
                             <div className="flex items-center justify-between">
                               <h4 className="text-lg font-semibold">Participant Details</h4>
@@ -517,7 +602,7 @@ const AdminRegistrations = () => {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => {
-                                    const details = `Name: ${registration.full_name}\nEmail: ${registration.email}\nGrade: ${getGradeDisplay(registration.grade)}\nSchool: ${getSchoolDisplay(registration)}\nHackathons Attended: ${registration.hackathons_attended}\nDietary Restrictions: ${getDietaryDisplay(registration)}\nRegistration Date: ${format(new Date(registration.registered_at), 'MMM d, yyyy')}`;
+                                    const details = `Name: ${registration.full_name}\nEmail: ${registration.email}\nGrade: ${getGradeDisplay(registration.grade)}\nSchool: ${getSchoolDisplay(registration)}\nHackathons Attended: ${registration.hackathons_attended}\nDietary Restrictions: ${getDietaryDisplay(registration)}\nCheck-in Status: ${registration.checked_in ? 'Checked In' : 'Not Checked In'}\nRegistration Date: ${format(new Date(registration.registered_at), 'MMM d, yyyy')}`;
                                     navigator.clipboard.writeText(details);
                                   }}
                                 >
@@ -663,6 +748,37 @@ const AdminRegistrations = () => {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => copyToClipboard(format(new Date(registration.registered_at), 'MMMM d, yyyy \'at\' HH:mm'))}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Check-in Status</label>
+                              <div className="flex items-center space-x-2">
+                                <div className="flex-1 p-2 bg-background border rounded text-sm flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                      checked={registration.checked_in}
+                                      onCheckedChange={() => toggleCheckInStatus(registration.id, registration.checked_in)}
+                                      className="w-4 h-4"
+                                    />
+                                    <span className={registration.checked_in ? "text-green-600 font-medium" : "text-gray-500"}>
+                                      {registration.checked_in ? 'Checked In' : 'Not Checked In'}
+                                    </span>
+                                  </div>
+                                  {registration.checked_in && (
+                                    <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                      ✓ Present
+                                    </Badge>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(registration.checked_in ? 'Checked In' : 'Not Checked In')}
                                   className="h-8 w-8 p-0"
                                 >
                                   <Copy className="h-3 w-3" />

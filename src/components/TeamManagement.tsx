@@ -48,6 +48,7 @@ const TeamManagement = () => {
   const [creatingTeam, setCreatingTeam] = useState(false);
   const [invitingMembers, setInvitingMembers] = useState(false);
   const [finalizingTeam, setFinalizingTeam] = useState(false);
+  const [inviteErrors, setInviteErrors] = useState<string[]>([]);
 
   // Form states
   const [teamName, setTeamName] = useState('');
@@ -144,6 +145,7 @@ const TeamManagement = () => {
 
             return {
               ...member,
+              status: member.status as 'pending' | 'accepted' | 'declined',
               profile: profile || { full_name: 'Unknown', email: 'unknown@example.com' }
             };
           })
@@ -173,17 +175,26 @@ const TeamManagement = () => {
       return;
     }
 
+    if (teamName.trim().length > 15) {
+      toast({
+        title: "Error",
+        description: "Team name must be 15 characters or less",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setCreatingTeam(true);
     try {
       console.log('Creating team with user ID:', user?.id);
       
-      // Create team
+      // Create team - single member teams start with Library as default
       const { data: team, error: teamError } = await supabase
         .from('teams')
         .insert({
           name: teamName.trim(),
           leader_id: user?.id,
-          room: 'TBD'
+          room: 'TBD' // Will be set to Library when finalized if still single member
         })
         .select()
         .single();
@@ -231,6 +242,9 @@ const TeamManagement = () => {
   const inviteMembers = async () => {
     const validEmails = inviteEmails.filter(email => email.trim()).map(email => email.trim());
     
+    // Clear previous errors
+    setInviteErrors([]);
+    
     if (validEmails.length === 0) {
       toast({
         title: "Error",
@@ -243,6 +257,8 @@ const TeamManagement = () => {
     if (!userTeam) return;
 
     setInvitingMembers(true);
+    const errors: string[] = [];
+    
     try {
       // Debug: Let's see what emails are in the profiles table
       const { data: allProfiles } = await supabase
@@ -261,7 +277,7 @@ const TeamManagement = () => {
         return;
       }
 
-      // Check if users exist and send invites
+      // Check if users exist and are checked in before sending invites
       for (const email of validEmails) {
         console.log('Checking profile for email:', email);
         
@@ -277,15 +293,57 @@ const TeamManagement = () => {
 
         if (profileError) {
           console.error('Profile not found for email:', email, profileError);
+          const errorMsg = `User with email ${email} not found. Make sure they have created an account on the platform.`;
+          errors.push(errorMsg);
           toast({
-            title: "Warning",
-            description: `User with email ${email} not found. Make sure they have registered on the platform.`,
+            title: "Error",
+            description: errorMsg,
             variant: "destructive"
           });
           continue;
         }
 
         if (profile) {
+          // Check if the user is registered and checked in
+          console.log('Checking registration status for user_id:', profile.user_id);
+          const { data: registration, error: regError } = await supabase
+            .from('registrations')
+            .select('checked_in')
+            .eq('user_id', profile.user_id)
+            .single();
+
+          console.log('Registration query result:', { registration, regError });
+
+          if (regError || !registration) {
+            console.error('Registration not found for user:', email, regError);
+            const errorMsg = `User ${email} is not registered for the event.`;
+            errors.push(errorMsg);
+            toast({
+              title: "Error", 
+              description: errorMsg,
+              variant: "destructive"
+            });
+            continue;
+          }
+
+          // Check if user is checked in (handle case where column might not exist)
+          const isCheckedIn = registration && 'checked_in' in registration 
+            ? (registration as any).checked_in 
+            : false;
+
+          if (!isCheckedIn) {
+            const errorMsg = `${email} has not been checked in to the event yet and cannot be invited to a team.`;
+            errors.push(errorMsg);
+            toast({
+              title: "Error",
+              description: errorMsg,
+              variant: "destructive"
+            });
+            continue;
+          }
+
+          console.log('User is registered and checked in, proceeding with invite for:', email);
+
           console.log('Creating invite for:', email, 'user_id:', profile.user_id, 'team_id:', userTeam.id);
           
           // Try to create the invite
@@ -309,9 +367,11 @@ const TeamManagement = () => {
 
           if (inviteError) {
             console.error('Error creating invite:', inviteError);
+            const errorMsg = `Failed to invite ${email}: ${inviteError.message}`;
+            errors.push(errorMsg);
             toast({
               title: "Error",
-              description: `Failed to invite ${email}: ${inviteError.message}`,
+              description: errorMsg,
               variant: "destructive"
             });
           } else {
@@ -324,18 +384,32 @@ const TeamManagement = () => {
         }
       }
 
-      toast({
-        title: "Success",
-        description: "Invites sent successfully!",
-      });
+      // Update error state
+      setInviteErrors(errors);
 
-      setInviteEmails(['']); // Reset to one empty field
+      // Only show success if there were no errors
+      if (errors.length === 0) {
+        toast({
+          title: "Success",
+          description: "All invites sent successfully!",
+        });
+        setInviteEmails(['']); // Reset to one empty field
+      } else if (errors.length < validEmails.length) {
+        toast({
+          title: "Partial Success",
+          description: "Some invites were sent successfully, but some failed. Check the errors below.",
+          variant: "destructive"
+        });
+      }
+
       loadUserTeam(); // Refresh team data
     } catch (error) {
       console.error('Error inviting members:', error);
+      const errorMsg = "Failed to send invites";
+      setInviteErrors([errorMsg]);
       toast({
         title: "Error",
-        description: "Failed to send invites",
+        description: errorMsg,
         variant: "destructive"
       });
     } finally {
@@ -357,10 +431,24 @@ const TeamManagement = () => {
     const newEmails = [...inviteEmails];
     newEmails[index] = value;
     setInviteEmails(newEmails);
+    
+    // Clear invite errors when user starts typing
+    if (inviteErrors.length > 0) {
+      setInviteErrors([]);
+    }
   };
 
   const finalizeTeam = async () => {
-    if (!selectedRoom) {
+    if (!userTeam) return;
+
+    // Check if team only has one member (the leader) - auto-assign to Library
+    const acceptedMembers = userTeam.members.filter(m => m.status === 'accepted');
+    const isSingleMemberTeam = acceptedMembers.length === 1;
+    
+    let roomToAssign = selectedRoom;
+    if (isSingleMemberTeam) {
+      roomToAssign = 'Library';
+    } else if (!selectedRoom) {
       toast({
         title: "Error",
         description: "Please select a room",
@@ -369,41 +457,43 @@ const TeamManagement = () => {
       return;
     }
 
-    if (!userTeam) return;
-
     setFinalizingTeam(true);
     try {
-      // Check room capacity
-      const { data: roomCount } = await supabase
-        .from('teams')
-        .select('id', { count: 'exact' })
-        .eq('room', selectedRoom)
-        .eq('is_finalized', true);
+      // Check room capacity (only for non-Library rooms or non-single-member teams)
+      if (!isSingleMemberTeam) {
+        const { data: roomCount } = await supabase
+          .from('teams')
+          .select('id', { count: 'exact' })
+          .eq('room', roomToAssign)
+          .eq('is_finalized', true);
 
-      const currentCount = roomCount?.length || 0;
-      const maxCapacity = selectedRoom === 'Library' ? 999 : 2;
+        const currentCount = roomCount?.length || 0;
+        const maxCapacity = roomToAssign === 'Library' ? 999 : 2;
 
-      if (currentCount >= maxCapacity) {
-        toast({
-          title: "Error",
-          description: `Room ${selectedRoom} is at full capacity`,
-          variant: "destructive"
-        });
-        return;
+        if (currentCount >= maxCapacity) {
+          toast({
+            title: "Error",
+            description: `Room ${roomToAssign} is at full capacity`,
+            variant: "destructive"
+          });
+          return;
+        }
       }
 
       // Finalize team
       await supabase
         .from('teams')
         .update({
-          room: selectedRoom,
+          room: roomToAssign,
           is_finalized: true
         })
         .eq('id', userTeam.id);
 
       toast({
         title: "Success",
-        description: "Team finalized successfully!",
+        description: isSingleMemberTeam 
+          ? "Team finalized and automatically assigned to the Library!"
+          : "Team finalized successfully!",
       });
 
       loadUserTeam();
@@ -456,10 +546,24 @@ const TeamManagement = () => {
                   <span>Finalized - Room: {userTeam.room}</span>
                 </span>
               ) : (
-                <span className="flex items-center space-x-2 text-yellow-600">
-                  <XCircle className="w-4 h-4" />
-                  <span>Not finalized</span>
-                </span>
+                <div className="space-y-1">
+                  <span className="flex items-center space-x-2 text-yellow-600">
+                    <XCircle className="w-4 h-4" />
+                    <span>Not finalized</span>
+                  </span>
+                  {(() => {
+                    const acceptedMembers = userTeam.members.filter(m => m.status === 'accepted');
+                    const isSingleMemberTeam = acceptedMembers.length === 1;
+                    if (isSingleMemberTeam) {
+                      return (
+                        <Badge variant="outline" className="text-xs">
+                          Single member → Library assignment
+                        </Badge>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
               )}
             </CardDescription>
           </CardHeader>
@@ -488,6 +592,24 @@ const TeamManagement = () => {
                 {/* Invite Members */}
                 <div className="space-y-2">
                   <Label>Invite Members</Label>
+                  
+                  {/* Display invitation errors */}
+                  {inviteErrors.length > 0 && (
+                    <Alert className="border-destructive">
+                      <XCircle className="h-4 w-4 text-destructive" />
+                      <AlertDescription>
+                        <div className="font-medium text-destructive mb-1">
+                          Unable to invite the following users:
+                        </div>
+                        <ul className="list-disc list-inside space-y-1 text-sm">
+                          {inviteErrors.map((error, index) => (
+                            <li key={index} className="text-destructive">{error}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
                   <div className="space-y-2">
                     {inviteEmails.map((email, index) => (
                       <div key={index} className="flex space-x-2">
@@ -516,10 +638,11 @@ const TeamManagement = () => {
                         variant="outline"
                         size="sm"
                         onClick={addEmailField}
+                        disabled={inviteEmails.length >= 3}
                         className="flex items-center space-x-1"
                       >
                         <UserPlus className="w-4 h-4" />
-                        <span>Add Another Email</span>
+                        <span>Add Another Email ({inviteEmails.length}/3)</span>
                       </Button>
                       <Button
                         onClick={inviteMembers}
@@ -535,29 +658,60 @@ const TeamManagement = () => {
 
                 {/* Finalize Team */}
                 <div className="space-y-2">
-                  <Label htmlFor="room-select">Select Room</Label>
-                  <div className="flex space-x-2">
-                    <Select value={selectedRoom} onValueChange={setSelectedRoom}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Choose a room" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ROOM_OPTIONS.map((room) => (
-                          <SelectItem key={room} value={room}>
-                            {room}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      onClick={finalizeTeam}
-                      disabled={finalizingTeam || !selectedRoom}
-                      className="flex items-center space-x-1"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Finalize</span>
-                    </Button>
-                  </div>
+                  {(() => {
+                    const acceptedMembers = userTeam.members.filter(m => m.status === 'accepted');
+                    const isSingleMemberTeam = acceptedMembers.length === 1;
+                    
+                    if (isSingleMemberTeam) {
+                      return (
+                        <div>
+                          <Label>Room Assignment</Label>
+                          <Alert className="mt-2">
+                            <MapPin className="h-4 w-4" />
+                            <AlertDescription>
+                              Single-member teams are automatically assigned to the <strong>Library</strong>. No room selection needed.
+                            </AlertDescription>
+                          </Alert>
+                          <Button
+                            onClick={finalizeTeam}
+                            disabled={finalizingTeam}
+                            className="flex items-center space-x-1 mt-2"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Finalize Team (Library)</span>
+                          </Button>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div>
+                          <Label htmlFor="room-select">Select Room</Label>
+                          <div className="flex space-x-2">
+                            <Select value={selectedRoom} onValueChange={setSelectedRoom}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Choose a room" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ROOM_OPTIONS.map((room) => (
+                                  <SelectItem key={room} value={room}>
+                                    {room}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              onClick={finalizeTeam}
+                              disabled={finalizingTeam || !selectedRoom}
+                              className="flex items-center space-x-1"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              <span>Finalize</span>
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
               </div>
             )}
@@ -587,13 +741,17 @@ const TeamManagement = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="team-name">Team Name</Label>
+              <Label htmlFor="team-name">Team Name (max 15 characters)</Label>
               <Input
                 id="team-name"
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 placeholder="Enter team name"
+                maxLength={15}
               />
+              <div className="text-xs text-muted-foreground">
+                {teamName.length}/15 characters
+              </div>
             </div>
             <Button
               onClick={createTeam}

@@ -132,3 +132,65 @@ All colors MUST be HSL.
     background: var(--gradient-card);
   }
 }
+
+/* Mobile-optimized styles for better touch experience */
+@layer utilities {
+  /* Improve touch targets on mobile */
+  @media (max-width: 768px) {
+    /* Ensure minimum touch target size of 44px */
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Better spacing for mobile */
+    .mobile-padding {
+      padding: 1rem;
+    }
+    
+    .mobile-margin {
+      margin: 0.5rem;
+    }
+    
+    /* Prevent zoom on input focus */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="search"],
+    select,
+    textarea {
+      font-size: 16px;
+    }
+    
+    /* Better button spacing */
+    button {
+      min-height: 44px;
+    }
+    
+    /* Improve readability */
+    .mobile-text {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+  }
+  
+  /* Ensure proper scrolling on mobile */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+  
+  /* Better focus states for accessibility */
+  .focus-enhanced:focus {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  
+  /* Smooth interactions */
+  .smooth-interaction {
+    transition: all 0.2s ease-in-out;
+  }
+}

@@ -6,13 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Calendar, Bell, LogOut, Settings, UserX } from 'lucide-react';
+import { Users, Calendar, Bell, LogOut, Settings, UserX, UserPlus } from 'lucide-react';
 import htrLogo from '../assets/htr_logo_transparent.svg';
 import AdminRegistrations from '@/components/AdminRegistrations';
 import AdminSchedule from '@/components/AdminSchedule';
 import AdminNotifications from '@/components/AdminNotifications';
 import AdminUsers from '@/components/AdminUsers';
 import AdminTeams from '@/components/AdminTeams';
+import AdminSystemSettings from '@/components/AdminSystemSettings';
+
 
 const Admin = () => {
   const { user, loading, signOut } = useAuth();
@@ -112,9 +114,9 @@ const Admin = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="registrations" className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:grid-cols-5">
+                  <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:grid-cols-6">
           <TabsTrigger value="registrations" className="flex items-center space-x-2">
-            <Users className="w-4 h-4" />
+            <UserPlus className="w-4 h-4" />
             <span className="hidden sm:inline">Registrations</span>
           </TabsTrigger>
           <TabsTrigger value="teams" className="flex items-center space-x-2">
@@ -132,6 +134,10 @@ const Admin = () => {
           <TabsTrigger value="notifications" className="flex items-center space-x-2">
             <Bell className="w-4 h-4" />
             <span className="hidden sm:inline">Notifications</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center space-x-2">
+            <Settings className="w-4 h-4" />
+            <span className="hidden sm:inline">Settings</span>
           </TabsTrigger>
         </TabsList>
 
@@ -153,6 +159,10 @@ const Admin = () => {
 
           <TabsContent value="notifications">
             <AdminNotifications />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <AdminSystemSettings />
           </TabsContent>
         </Tabs>
       </main>
