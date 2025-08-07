@@ -96,7 +96,6 @@ const RegistrationForm = () => {
         dietary_restrictions: formData.dietary_restrictions,
         school_name_other: formData.school_name_other,
         dietary_restrictions_other: formData.dietary_restrictions_other,
-        experience_level: 'beginner', // Default value as required by schema
       };
 
       if (isRegistered) {

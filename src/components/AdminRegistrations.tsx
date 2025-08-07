@@ -23,7 +23,6 @@ interface Registration {
   hackathons_attended: number;
   dietary_restrictions: string;
   dietary_restrictions_other: string;
-  experience_level: string;
   registered_at: string;
   checked_in: boolean;
 }
@@ -140,8 +139,7 @@ const AdminRegistrations = () => {
           school_name_other: editingRegistration.school_name_other,
           hackathons_attended: editingRegistration.hackathons_attended,
           dietary_restrictions: editingRegistration.dietary_restrictions,
-          dietary_restrictions_other: editingRegistration.dietary_restrictions_other,
-          experience_level: editingRegistration.experience_level
+          dietary_restrictions_other: editingRegistration.dietary_restrictions_other
         })
         .eq('id', registrationId);
 

@@ -87,12 +87,12 @@ export type Database = {
       }
       registrations: {
         Row: {
+          checked_in: boolean | null
           dietary_restrictions: string | null
           dietary_restrictions_other: string | null
           email: string
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
-          experience_level: string
           full_name: string
           github_username: string | null
           grade: string | null
@@ -109,12 +109,12 @@ export type Database = {
           year_of_study: string | null
         }
         Insert: {
+          checked_in?: boolean | null
           dietary_restrictions?: string | null
           dietary_restrictions_other?: string | null
           email: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
-          experience_level: string
           full_name: string
           github_username?: string | null
           grade?: string | null
@@ -131,12 +131,12 @@ export type Database = {
           year_of_study?: string | null
         }
         Update: {
+          checked_in?: boolean | null
           dietary_restrictions?: string | null
           dietary_restrictions_other?: string | null
           email?: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
-          experience_level?: string
           full_name?: string
           github_username?: string | null
           grade?: string | null
